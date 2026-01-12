@@ -1,43 +1,74 @@
 <view class="container">
-  <!-- 顶部操作区域 -->
-  <view class="header">
-    <button class="btn" bindtap="chooseImage">选择图片</button>
-    <button class="btn" bindtap="autoRemoveWatermark" disabled="{{!originalImage}}">自动去水印</button>
-  </view>
+  <!-- 短链解析区域 -->
+  <view class="card">
+    <view class="section-title">解析小红书短链，获取无水印原图</view>
+    <input 
+      class="input"
+      placeholder="输入小红书短链或分享口令"
+      value="{{shortLink}}"
+      bindinput="onShortLinkInput"
+      confirm-type="done"
+    />
+    <button 
+      class="btn"
+      bindtap="parseShortLink"
+      loading="{{isParsing}}"
+      disabled="{{isParsing || !shortLink}}"
+    >
+      {{isParsing ? '解析中...' : '解析短链'}}
+    </button>
 
-  <!-- 图片显示区域 -->
-  <view class="image-container" wx:if="{{originalImage}}">
-    <view class="canvas-wrapper">
-      <canvas 
-        canvas-id="imageCanvas" 
-        class="image-canvas"
-        style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
-        disable-scroll="true"
-        bindtouchstart="onTouchStart"
-        bindtouchmove="onTouchMove"
-        bindtouchend="onTouchEnd"
-      ></canvas>
+    <view class="result-url" wx:if="{{parsedMediaUrl}}">
+      <text selectable="true" user-select="true" space="true">{{parsedMediaUrl}}</text>
     </view>
-    
-    <!-- 手动涂抹模式提示 -->
-    <view class="toolbar">
-      <view class="mode-tip">手动涂抹模式：手指移动涂抹去除水印</view>
-      <view class="brush-size">
-        <text>画笔大小：{{brushSize}}</text>
-        <slider min="5" max="50" value="{{brushSize}}" bindchange="onBrushSizeChange" activeColor="#007aff"/>
+
+    <view class="log-panel" wx:if="{{logs.length}}">
+      <view class="log-item" wx:for="{{logs}}" wx:key="index">
+        {{item}}
       </view>
-      <button class="btn-small" bindtap="resetImage">重置图片</button>
     </view>
   </view>
 
-  <!-- 处理后的图片显示 -->
-  <view class="result-container" wx:if="{{processedImage}}">
-    <image class="result-image" src="{{processedImage}}" mode="widthFix"></image>
-    <button class="btn-primary" bindtap="saveImage">保存图片</button>
+  <!-- 图片预览区域 -->
+  <view class="result-container" wx:if="{{allImages.length > 0}}">
+    <view class="section-title">无水印原图预览（共{{allImages.length}}张）</view>
+    
+    <!-- 操作栏 -->
+    <view class="action-bar">
+      <button class="btn-small" bindtap="toggleSelectAll">
+        {{selectedImages.length === allImages.length ? '取消全选' : '全选'}}
+      </button>
+      <button 
+        class="btn-primary" 
+        bindtap="downloadSelectedImages"
+        disabled="{{selectedImages.length === 0}}"
+      >
+        下载选中({{selectedImages.length}})
+      </button>
+    </view>
+
+    <!-- 图片列表 -->
+    <view class="image-list">
+      <view 
+        class="image-item {{item.selected ? 'selected' : ''}}"
+        wx:for="{{allImages}}" 
+        wx:key="index"
+        data-index="{{index}}"
+        bindtap="toggleImageSelect"
+      >
+        <view class="image-checkbox">
+          <text class="checkbox-icon" wx:if="{{item.selected}}">✓</text>
+        </view>
+        <image class="image-thumb" src="{{item.url}}" mode="aspectFill" lazy-load="true"></image>
+        <view class="image-actions">
+          <button class="btn-mini" catchtap="downloadImage" data-index="{{index}}">下载</button>
+        </view>
+      </view>
+    </view>
   </view>
 
   <!-- 空状态提示 -->
-  <view class="empty-tip" wx:if="{{!originalImage}}">
-    <text>请选择一张图片开始处理</text>
+  <view class="empty-tip" wx:if="{{allImages.length === 0}}">
+    <text>请输入小红书短链，解析后即可查看无水印原图</text>
   </view>
 </view>

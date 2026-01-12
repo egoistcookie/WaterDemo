@@ -5,6 +5,7 @@
 ## 功能特性
 
 - ✅ 图片上传：支持从相册选择或拍照
+- ✅ 短链解析：输入小红书短链，提取无水印原图直链
 - ✅ 自动去水印：一键自动处理图片
 - ✅ 手动涂抹：手指移动涂抹去除水印
 - ✅ 画笔大小调节：可调整涂抹画笔大小
@@ -43,6 +44,41 @@
 │       ├── index.js    # 页面逻辑
 │       ├── index.wxml  # 页面结构
 │       └── index.wxss  # 页面样式
+├── backend/            # Python后端服务
+│   ├── app.py          # Flask应用主文件
+│   ├── requirements.txt # Python依赖
+│   ├── README.md       # 后端说明文档
+│   ├── config.md       # 配置说明
+│   ├── start.bat       # Windows启动脚本
+│   └── start.sh        # Linux/Mac启动脚本
 └── README.md           # 说明文档
 ```
 
+## 后端服务
+
+本项目包含Python Flask后端服务，用于解析小红书短链。
+
+### 快速开始
+
+1. **安装后端依赖**
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+2. **启动后端服务**
+```bash
+python app.py
+```
+
+服务将在 `http://localhost:5000` 启动
+
+3. **配置小程序**
+在 `pages/index/index.js` 中修改 `apiBaseUrl` 为你的后端地址：
+```javascript
+apiBaseUrl: 'http://localhost:5000'  // 本地开发
+// 或
+apiBaseUrl: 'https://your-server.com'  // 生产环境
+```
+
+详细配置说明请查看 [backend/config.md](backend/config.md)

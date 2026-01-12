@@ -3,6 +3,33 @@
   min-height: 100vh;
 }
 
+.card {
+  background-color: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.03);
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 16rpx;
+}
+
+.input {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  border: 1px solid #e0e0e0;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+  margin-bottom: 16rpx;
+  font-size: 26rpx;
+}
+
 .header {
   display: flex;
   gap: 20rpx;
@@ -23,6 +50,37 @@
 .btn:disabled {
   background-color: #cccccc;
   color: #999;
+}
+
+.result-url {
+  margin-top: 12rpx;
+  padding: 12rpx;
+  background-color: #f6f6f6;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  color: #222;
+  word-break: break-all;
+}
+
+.log-panel {
+  margin-top: 16rpx;
+  padding: 12rpx;
+  background-color: #0b172a;
+  color: #dce4f2;
+  border-radius: 8rpx;
+  max-height: 260rpx;
+  overflow: auto;
+}
+
+.log-item {
+  font-size: 24rpx;
+  line-height: 1.6;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6rpx 0;
+}
+
+.log-item:last-child {
+  border-bottom: none;
 }
 
 .btn-primary {
@@ -114,3 +172,92 @@
   color: #999;
 }
 
+/* 操作栏 */
+.action-bar {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+  align-items: center;
+}
+
+.action-bar .btn-primary {
+  flex: 1;
+  margin-top: 0;
+}
+
+.action-bar .btn-primary:disabled {
+  background-color: #cccccc;
+  color: #999;
+}
+
+/* 图片列表 */
+.image-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+}
+
+.image-item {
+  position: relative;
+  border-radius: 12rpx;
+  overflow: hidden;
+  background-color: #f5f5f5;
+  border: 3rpx solid transparent;
+  transition: all 0.3s;
+}
+
+.image-item.selected {
+  border-color: #007aff;
+  box-shadow: 0 0 0 2rpx rgba(0, 122, 255, 0.2);
+}
+
+.image-checkbox {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 48rpx;
+  height: 48rpx;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.image-item.selected .image-checkbox {
+  background-color: #007aff;
+}
+
+.checkbox-icon {
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.image-thumb {
+  width: 100%;
+  height: 300rpx;
+  display: block;
+}
+
+.image-actions {
+  padding: 12rpx;
+  background-color: rgba(0, 0, 0, 0.6);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-mini {
+  padding: 8rpx 20rpx;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #007aff;
+  border: none;
+  border-radius: 6rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}

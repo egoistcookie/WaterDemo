@@ -1,0 +1,4 @@
+Flask==3.0.0
+flask-cors==4.0.0
+requests==2.31.0
+# playwright==1.40.0  # 可选，用于处理JavaScript渲染的页面，需要额外安装浏览器

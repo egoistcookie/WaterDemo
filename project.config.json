@@ -46,7 +46,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "2.19.4",
+  "libVersion": "3.13.1",
   "appid": "wx3bd9a4090f72de42",
   "projectname": "WaterDemo",
   "condition": {},
