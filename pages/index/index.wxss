@@ -1,0 +1,116 @@
+.container {
+  padding: 20rpx;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  background-color: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+}
+
+.btn:disabled {
+  background-color: #cccccc;
+  color: #999;
+}
+
+.btn-primary {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  background-color: #34c759;
+  color: #fff;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  margin-top: 20rpx;
+}
+
+.btn-small {
+  padding: 10rpx 20rpx;
+  background-color: #ff3b30;
+  color: #fff;
+  border: none;
+  border-radius: 6rpx;
+  font-size: 24rpx;
+}
+
+.image-container {
+  background-color: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.canvas-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+}
+
+.image-canvas {
+  border: 1px solid #e0e0e0;
+  border-radius: 8rpx;
+  background-color: #fafafa;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.toolbar {
+  padding: 20rpx;
+  background-color: #f8f8f8;
+  border-radius: 8rpx;
+}
+
+.mode-tip {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+  text-align: center;
+}
+
+.brush-size {
+  margin-bottom: 20rpx;
+}
+
+.brush-size text {
+  font-size: 26rpx;
+  color: #333;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.result-container {
+  background-color: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.result-image {
+  width: 100%;
+  border-radius: 8rpx;
+}
+
+.empty-tip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  font-size: 28rpx;
+  color: #999;
+}
+

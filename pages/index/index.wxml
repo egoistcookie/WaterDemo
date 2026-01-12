@@ -1,0 +1,43 @@
+<view class="container">
+  <!-- 顶部操作区域 -->
+  <view class="header">
+    <button class="btn" bindtap="chooseImage">选择图片</button>
+    <button class="btn" bindtap="autoRemoveWatermark" disabled="{{!originalImage}}">自动去水印</button>
+  </view>
+
+  <!-- 图片显示区域 -->
+  <view class="image-container" wx:if="{{originalImage}}">
+    <view class="canvas-wrapper">
+      <canvas 
+        canvas-id="imageCanvas" 
+        class="image-canvas"
+        style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+        disable-scroll="true"
+        bindtouchstart="onTouchStart"
+        bindtouchmove="onTouchMove"
+        bindtouchend="onTouchEnd"
+      ></canvas>
+    </view>
+    
+    <!-- 手动涂抹模式提示 -->
+    <view class="toolbar">
+      <view class="mode-tip">手动涂抹模式：手指移动涂抹去除水印</view>
+      <view class="brush-size">
+        <text>画笔大小：{{brushSize}}</text>
+        <slider min="5" max="50" value="{{brushSize}}" bindchange="onBrushSizeChange" activeColor="#007aff"/>
+      </view>
+      <button class="btn-small" bindtap="resetImage">重置图片</button>
+    </view>
+  </view>
+
+  <!-- 处理后的图片显示 -->
+  <view class="result-container" wx:if="{{processedImage}}">
+    <image class="result-image" src="{{processedImage}}" mode="widthFix"></image>
+    <button class="btn-primary" bindtap="saveImage">保存图片</button>
+  </view>
+
+  <!-- 空状态提示 -->
+  <view class="empty-tip" wx:if="{{!originalImage}}">
+    <text>请选择一张图片开始处理</text>
+  </view>
+</view>
