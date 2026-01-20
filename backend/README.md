@@ -44,6 +44,29 @@ python app.py
 
 服务将在 `http://localhost:5000` 启动
 
+## 小程序图片必须 HTTPS（重要）
+
+微信小程序的 `<image>` 组件 **不支持 http** 图片链接（你会看到 “图片链接不再支持 HTTP 协议”）。
+
+因此后端如果要给小程序直接预览/下载（尤其是通过 `/api/image_proxy` 代理），**后端必须提供 HTTPS**。
+
+### 方式A：使用你已有的 HTTPS 域名（推荐）
+
+把小程序里的 `apiBaseUrl` 配成你的 `https://域名`，并确保域名已加入小程序“合法域名”。
+
+### 方式B：本地启用 HTTPS（需要证书）
+
+设置环境变量：
+
+```bash
+set FLASK_HTTPS=1
+set FLASK_SSL_CERT=path\to\cert.pem
+set FLASK_SSL_KEY=path\to\key.pem
+python app.py
+```
+
+如果未提供证书，代码会尝试 `ssl_context='adhoc'`，但这在部分环境需要额外依赖（可能无法安装）。
+
 ## API接口
 
 ### 解析短链

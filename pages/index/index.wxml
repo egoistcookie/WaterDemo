@@ -9,6 +9,13 @@
       bindinput="onShortLinkInput"
       confirm-type="done"
     />
+    <input 
+      class="input"
+      placeholder="豆包无水印可选：粘贴 Cookie（可留空）"
+      value="{{doubaoCookie}}"
+      bindinput="onDoubaoCookieInput"
+      confirm-type="done"
+    />
     <button 
       class="btn"
       bindtap="parseShortLink"
