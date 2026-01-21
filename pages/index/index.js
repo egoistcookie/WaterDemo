@@ -11,12 +11,12 @@ Page({
     logs: [],
     // 后端API地址，部署时需要修改为实际服务器地址
     // 本地开发使用 127.0.0.1，生产环境必须使用HTTPS
-    // 方案1：使用域名（推荐）- 已配置为 www.egoistcookie.top
-    //apiBaseUrl: 'https://www.egoistcookie.top'  // 阿里云域名，需要备案（如果服务器在国内）和SSL证书
-    // 方案2：使用IP（需要配置HTTPS，不推荐，微信小程序可能不接受）
-    //apiBaseUrl: 'http://120.77.92.36:5000'  // 如果使用IP，需要配置自签名证书（不推荐）
-    // 测试方案：通过本地服务
-    apiBaseUrl: 'http://127.0.0.1:5000' 
+    // 方案1：使用域名（推荐）- 等域名审核通过后启用
+    apiBaseUrl: 'https://www.egoistcookie.top'  // ✅ 域名：www.egoistcookie.top（等审核通过后使用）
+    // 方案2：本地开发使用（暂时注释）
+    //apiBaseUrl: 'http://127.0.0.1:5000'  // 本地开发测试用
+    // 方案3：使用IP（需要配置HTTPS，不推荐，微信小程序可能不接受）
+    //apiBaseUrl: 'https://120.77.92.36'  // 如果使用IP，需要配置自签名证书（不推荐） 
   },
 
   onLoad() {
