@@ -1,6 +1,7 @@
 .container {
   padding: 20rpx;
   min-height: 100vh;
+  background: linear-gradient(180deg, #e4e9ec 0%, #ffffff 55%, #e4e9ec 100%);
 }
 
 .card {
@@ -8,13 +9,14 @@
   border-radius: 12rpx;
   padding: 20rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.03);
+  border: 2rpx solid rgba(35, 67, 105, 0.14);
+  box-shadow: 0 10rpx 26rpx rgba(35, 67, 105, 0.12);
 }
 
 .section-title {
   font-size: 28rpx;
   font-weight: 600;
-  color: #111;
+  color: #234369;
   margin-bottom: 16rpx;
 }
 
@@ -22,12 +24,13 @@
   width: 100%;
   height: 80rpx;
   line-height: 80rpx;
-  border: 1px solid #e0e0e0;
+  border: 2rpx solid rgba(89, 139, 176, 0.35);
   border-radius: 8rpx;
   padding: 0 20rpx;
   box-sizing: border-box;
   margin-bottom: 16rpx;
   font-size: 26rpx;
+  background: #ffffff;
 }
 
 .header {
@@ -37,35 +40,39 @@
 }
 
 .btn {
-  flex: 1;
   height: 80rpx;
-  line-height: 80rpx;
-  background-color: #007aff;
+  background: linear-gradient(90deg, #9ac8ec 0%, #598bb0 100%);
   color: #fff;
   border: none;
   border-radius: 8rpx;
   font-size: 28rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn:disabled {
-  background-color: #cccccc;
-  color: #999;
+  background: #e4e9ec;
+  color: rgba(35, 67, 105, 0.45);
 }
 
 .result-url {
   margin-top: 12rpx;
   padding: 12rpx;
-  background-color: #f6f6f6;
+  background-color: #e4e9ec;
   border-radius: 8rpx;
   font-size: 24rpx;
-  color: #222;
+  color: #234369;
   word-break: break-all;
+  border: 2rpx dashed rgba(89, 139, 176, 0.35);
 }
 
 .log-panel {
   margin-top: 16rpx;
   padding: 12rpx;
-  background-color: #0b172a;
+  background-color: #234369;
   color: #dce4f2;
   border-radius: 8rpx;
   max-height: 260rpx;
@@ -86,22 +93,30 @@
 .btn-primary {
   width: 100%;
   height: 80rpx;
-  line-height: 80rpx;
-  background-color: #34c759;
+  background: linear-gradient(90deg, #9ac8ec 0%, #598bb0 100%);
   color: #fff;
   border: none;
   border-radius: 8rpx;
   font-size: 28rpx;
   margin-top: 20rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-small {
   padding: 10rpx 20rpx;
-  background-color: #ff3b30;
+  background-color: #9ac8ec;
   color: #fff;
   border: none;
   border-radius: 6rpx;
   font-size: 24rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .image-container {
@@ -156,6 +171,8 @@
   background-color: #fff;
   border-radius: 12rpx;
   padding: 20rpx;
+  border: 2rpx solid rgba(35, 67, 105, 0.14);
+  box-shadow: 0 10rpx 26rpx rgba(35, 67, 105, 0.10);
 }
 
 .result-image {
@@ -169,7 +186,7 @@
   align-items: center;
   height: 60vh;
   font-size: 28rpx;
-  color: #999;
+  color: #80807e;
 }
 
 /* 操作栏 */
@@ -185,9 +202,14 @@
   margin-top: 0;
 }
 
+.action-bar .btn-small {
+  flex: 1;
+  height: 80rpx;
+}
+
 .action-bar .btn-primary:disabled {
-  background-color: #cccccc;
-  color: #999;
+  background: #e4e9ec;
+  color: rgba(35, 67, 105, 0.45);
 }
 
 /* 图片列表 */
@@ -207,8 +229,8 @@
 }
 
 .image-item.selected {
-  border-color: #007aff;
-  box-shadow: 0 0 0 2rpx rgba(0, 122, 255, 0.2);
+  border-color: #9ac8ec;
+  box-shadow: 0 0 0 2rpx rgba(154, 200, 236, 0.60);
 }
 
 .image-checkbox {
@@ -217,7 +239,7 @@
   right: 12rpx;
   width: 48rpx;
   height: 48rpx;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(35, 67, 105, 0.55);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -226,7 +248,7 @@
 }
 
 .image-item.selected .image-checkbox {
-  background-color: #007aff;
+  background-color: #9ac8ec;
 }
 
 .checkbox-icon {
@@ -243,7 +265,7 @@
 
 .image-actions {
   padding: 12rpx;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(35, 67, 105, 0.55);
   position: absolute;
   bottom: 0;
   left: 0;
@@ -255,9 +277,12 @@
 .btn-mini {
   padding: 8rpx 20rpx;
   background-color: rgba(255, 255, 255, 0.9);
-  color: #007aff;
+  color: #234369;
   border: none;
   border-radius: 6rpx;
   font-size: 22rpx;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

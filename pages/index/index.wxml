@@ -1,19 +1,12 @@
 <view class="container">
   <!-- 短链解析区域 -->
   <view class="card">
-    <view class="section-title">解析小红书短链，获取无水印原图</view>
+    <view class="section-title">解析链接，获取图片</view>
     <input 
       class="input"
-      placeholder="输入小红书短链或分享口令"
+      placeholder="输入小红书短链或豆包链接"
       value="{{shortLink}}"
       bindinput="onShortLinkInput"
-      confirm-type="done"
-    />
-    <input 
-      class="input"
-      placeholder="豆包无水印可选：粘贴 Cookie（可留空）"
-      value="{{doubaoCookie}}"
-      bindinput="onDoubaoCookieInput"
       confirm-type="done"
     />
     <button 

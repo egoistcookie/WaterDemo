@@ -1,8 +1,6 @@
 Page({
   data: {
     shortLink: '',
-    doubaoCookie: '',
-    doubaoSid: '',
     lastPlatform: '',
     parsedMediaUrl: '',
     allImages: [],  // 所有图片URL列表
@@ -27,13 +25,6 @@ Page({
   onShortLinkInput(e) {
     this.setData({
       shortLink: e.detail.value
-    })
-  },
-
-  // 输入豆包Cookie（可选，用于获取无水印原图）
-  onDoubaoCookieInput(e) {
-    this.setData({
-      doubaoCookie: e.detail.value
     })
   },
 
@@ -64,8 +55,7 @@ Page({
           'Content-Type': 'application/json'
         },
         data: {
-          short_link: shortLink,
-          cookie: (this.data.doubaoCookie || '').trim()
+          short_link: shortLink
         },
         timeout: 30000,
         success: (res) => {
@@ -100,42 +90,6 @@ Page({
     })
   },
 
-  // 把Cookie换成短sid，避免把超长cookie放在图片URL里（会被截断/泄漏）
-  async ensureDoubaoSid() {
-    const cookie = (this.data.doubaoCookie || '').trim()
-    if (!cookie) {
-      this.setData({ doubaoSid: '' })
-      return ''
-    }
-    if (this.data.doubaoSid) return this.data.doubaoSid
-
-    const apiUrl = `${this.data.apiBaseUrl}/api/doubao_cookie`
-    return new Promise((resolve) => {
-      wx.request({
-        url: apiUrl,
-        method: 'POST',
-        header: { 'Content-Type': 'application/json' },
-        data: { cookie },
-        timeout: 30000,
-        success: (res) => {
-          if (res.statusCode === 200 && res.data?.success && res.data?.data?.sid) {
-            this.setData({ doubaoSid: res.data.data.sid })
-            resolve(res.data.data.sid)
-          } else {
-            this.addLog('Cookie设置失败', res.data?.error || `HTTP ${res.statusCode}`)
-            this.setData({ doubaoSid: '' })
-            resolve('')
-          }
-        },
-        fail: (err) => {
-          this.addLog('Cookie设置异常', err?.errMsg || '未知错误')
-          this.setData({ doubaoSid: '' })
-          resolve('')
-        }
-      })
-    })
-  },
-
   // 构造用于展示/下载的最终图片URL（走后端图片代理，避免小程序直连第三方域名403）
   buildImageUrl(rawUrl, platform = '') {
     if (!rawUrl) return ''
@@ -152,43 +106,9 @@ Page({
       return finalImageUrl
     }
 
-    // 豆包：根据是否有Cookie和图片类型选择方案
-    const hasCookie = (this.data.doubaoCookie || '').trim().length > 0
-    const isNoWatermark = !finalImageUrl.includes('~tplv-') && !finalImageUrl.includes('watermark')
-    
-    // 无水印候选必须走代理（带Cookie），否则403
-    if (isNoWatermark && hasCookie) {
-      let proxyBase = this.data.apiBaseUrl || ''
-      const isLocalHttp = proxyBase.startsWith('http://127.0.0.1') || proxyBase.startsWith('http://localhost')
-      if (isLocalHttp) {
-        // 本地HTTP后端：无水印候选仍需要通过代理（但需要后端支持HTTPS）
-        console.warn('本地HTTP后端，无水印图片需要HTTPS代理；建议使用生产HTTPS后端或填写Cookie后使用代理域名')
-        // 这里仍返回原始URL，但会在加载时失败（需要用户配置HTTPS后端）
-        return finalImageUrl
-      }
-      // 生产HTTPS：走代理带Cookie
-      if (proxyBase.startsWith('http://')) {
-        proxyBase = proxyBase.replace('http://', 'https://')
-      }
-      const sid = (this.data.doubaoSid || '').trim()
-      const sidParam = sid ? `&sid=${encodeURIComponent(sid)}` : ''
-      return `${proxyBase}/api/image_proxy?url=${encodeURIComponent(finalImageUrl)}${sidParam}`
-    }
-    
-    // 水印图或没有Cookie：本地HTTP直接返回原始URL（小程序已加白名单）
-    let proxyBase = this.data.apiBaseUrl || ''
-    const isLocalHttp = proxyBase.startsWith('http://127.0.0.1') || proxyBase.startsWith('http://localhost')
-    if (isLocalHttp) {
-      return finalImageUrl
-    }
-    
-    // 生产环境：后端应该是 HTTPS，走代理（即使水印图也走代理，更统一）
-    if (proxyBase.startsWith('http://')) {
-      proxyBase = proxyBase.replace('http://', 'https://')
-    }
-    const sid = (this.data.doubaoSid || '').trim()
-    const sidParam = sid ? `&sid=${encodeURIComponent(sid)}` : ''
-    return `${proxyBase}/api/image_proxy?url=${encodeURIComponent(finalImageUrl)}${sidParam}`
+    // 豆包：默认直连（需要在小程序后台配置对应 byteimg.com 子域为合法域名）
+    // 目前前端不再提供 Cookie 输入，因此不尝试无水印原图，避免 403。
+    return finalImageUrl
   },
 
   // 从输入文本中提取 URL
@@ -243,8 +163,6 @@ Page({
     this.addLog('开始解析短链', link)
 
     try {
-      // 如果用户填了Cookie，先换成sid（避免图片URL里携带cookie）
-      await this.ensureDoubaoSid()
       // 调用后端API解析
       const apiData = await this.parseShortLinkWithAPI(link)
       
@@ -254,8 +172,8 @@ Page({
       const platform = (apiData.platform || '').toLowerCase() || (link.includes('doubao.com') ? 'doubao' : 'xhs')
       this.setData({ lastPlatform: platform })
       
-      // 豆包：优先用无水印字段（后端会同时给出 watermarked/no_watermark 供调试）
-      const mediaUrl = apiData.no_watermark_image_url || apiData.image_url
+      // 主图
+      const mediaUrl = apiData.image_url
       if (!mediaUrl) {
         console.error('API未返回image_url字段')
         throw new Error('API未返回图片URL')
@@ -290,22 +208,12 @@ Page({
           return hasExt || hasNdSuffix || hasNotesPath
         })
       } else {
-        // 豆包：如果用户没有填Cookie，只显示水印图（避免无水印候选403）
-        // 无水印候选（去掉 ~tplv-... 的URL）通常需要Cookie才能访问
-        const hasCookie = (this.data.doubaoCookie || '').trim().length > 0
-        if (!hasCookie) {
-          filteredImages = allImages.filter((url) => {
-            const u = (url || '').trim()
-            if (!u || !u.startsWith('http')) return false
-            // 只保留水印图（带 ~tplv-...watermark... 的URL），过滤掉无水印候选
-            return '~tplv-' in u || 'watermark' in u
-          })
-          console.log(`豆包：未提供Cookie，仅显示水印图（过滤掉${allImages.length - filteredImages.length}张无水印候选）`)
-          this.addLog('提示', '未提供Cookie，仅显示可访问的水印图；如需无水印原图，请填写Cookie')
-        } else {
-          // 有Cookie：显示所有图片（无水印候选会通过代理请求，后端会带上Cookie）
-          console.log('豆包：已提供Cookie，显示所有图片（无水印候选通过代理请求）')
-        }
+        // 豆包：只显示水印图（避免无水印候选 403）
+        filteredImages = allImages.filter((url) => {
+          const u = (url || '').trim()
+          if (!u || !u.startsWith('http')) return false
+          return u.indexOf('~tplv-') !== -1 || u.indexOf('watermark') !== -1
+        })
       }
 
       const processedImages = filteredImages.map((url, index) => {
