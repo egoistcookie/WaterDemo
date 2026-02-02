@@ -90,8 +90,9 @@ Page({
     })
   },
 
-  // 构造用于展示/下载的最终图片URL（走后端图片代理，避免小程序直连第三方域名403）
-  buildImageUrl(rawUrl, platform = '') {
+  // 构造用于展示/下载的最终图片URL
+  // useProxy: true=强制使用代理, false=直接使用原始URL, undefined=自动判断
+  buildImageUrl(rawUrl, platform = '', useProxy = undefined) {
     if (!rawUrl) return ''
     let finalImageUrl = rawUrl.trim()
     if (!finalImageUrl.startsWith('http')) {
@@ -101,14 +102,38 @@ Page({
       finalImageUrl = finalImageUrl.replace('http://', 'https://')
     }
 
-    // 小红书：默认直接返回图片URL（不走代理，避免本地 http 后端导致预览失败）
-    if ((platform || '').toLowerCase() !== 'doubao') {
+    const apiBaseUrl = this.data.apiBaseUrl || ''
+    
+    // 如果没有配置后端地址，直接返回原始URL
+    if (!apiBaseUrl) {
       return finalImageUrl
     }
 
-    // 豆包：默认直连（需要在小程序后台配置对应 byteimg.com 子域为合法域名）
-    // 目前前端不再提供 Cookie 输入，因此不尝试无水印原图，避免 403。
-    return finalImageUrl
+    // 判断是否为本地开发环境
+    const isLocalHttp = apiBaseUrl.startsWith('http://127.0.0.1') || 
+                        apiBaseUrl.startsWith('http://localhost')
+    
+    // 如果明确指定不使用代理，直接返回原始URL
+    if (useProxy === false) {
+      return finalImageUrl
+    }
+
+    // 本地开发环境：直接返回原始URL（需要在开发工具中配置域名白名单）
+    if (isLocalHttp) {
+      console.warn('本地开发环境，图片URL未走代理，需要在开发工具中配置域名白名单')
+      return finalImageUrl
+    }
+
+    // 如果明确指定使用代理，或者未指定（自动判断），则使用代理
+    // 生产环境：使用代理避免域名白名单问题
+    let proxyBase = apiBaseUrl
+    if (proxyBase.startsWith('http://')) {
+      proxyBase = proxyBase.replace('http://', 'https://')
+    }
+    
+    // 使用后端图片代理接口
+    const proxyUrl = `${proxyBase}/api/image_proxy?url=${encodeURIComponent(finalImageUrl)}`
+    return proxyUrl
   },
 
   // 从输入文本中提取 URL
@@ -218,9 +243,13 @@ Page({
 
       const processedImages = filteredImages.map((url, index) => {
         const raw = (url || '').trim()
-        const displayUrl = this.buildImageUrl(raw, platform)
+        // 暂时使用原始URL（显示和下载都用原始URL）
+        // 需要在微信后台配置小红书CDN域名为downloadFile合法域名
+        const displayUrl = this.buildImageUrl(raw, platform, false)  // 显示用原始URL
+        const downloadUrl = this.buildImageUrl(raw, platform, false)  // 下载也用原始URL（暂时）
         return {
-          url: displayUrl,        // 用于展示/下载的实际URL（豆包走代理，小红书直连）
+          url: displayUrl,        // 用于展示的URL（原始URL）
+          downloadUrl: downloadUrl,  // 用于下载的URL（原始URL，需要在后台配置域名白名单）
           rawUrl: raw,            // 保留原始URL以便调试
           selected: false,        // 选中状态
           index: index
@@ -321,7 +350,8 @@ Page({
 
     const imagesToDownload = selectedImages.map(index => {
       const image = allImages[index]
-      return image?.url || image
+      // 优先使用downloadUrl（代理URL），如果没有则使用url
+      return image?.downloadUrl || image?.url || image
     })
     let successCount = 0
     let failCount = 0
@@ -354,37 +384,68 @@ Page({
 
       this.addLog(`下载第${currentIndex}张`, imageUrl)
 
-      wx.downloadFile({
-        url: imageUrl,
-        success: (res) => {
-          if (res.statusCode === 200 && res.tempFilePath) {
-            wx.saveImageToPhotosAlbum({
-              filePath: res.tempFilePath,
-              success: () => {
-                successCount++
-                this.addLog(`第${currentIndex}张保存成功`, '')
-                downloadNext()
-              },
-              fail: (err) => {
-                failCount++
-                console.error(`保存第${currentIndex}张失败:`, err)
-                this.addLog(`第${currentIndex}张保存失败`, err.errMsg || '未知错误')
-                downloadNext()
+      // 下载函数，支持降级重试
+      const tryDownload = (url, isRetry = false) => {
+        wx.downloadFile({
+          url: url,
+          success: (res) => {
+            if (res.statusCode === 200 && res.tempFilePath) {
+              wx.saveImageToPhotosAlbum({
+                filePath: res.tempFilePath,
+                success: () => {
+                  successCount++
+                  this.addLog(`第${currentIndex}张保存成功`, isRetry ? '(使用原始URL)' : '')
+                  downloadNext()
+                },
+                fail: (err) => {
+                  failCount++
+                  console.error(`保存第${currentIndex}张失败:`, err)
+                  this.addLog(`第${currentIndex}张保存失败`, err.errMsg || '未知错误')
+                  downloadNext()
+                }
+              })
+            } else {
+              // 如果是代理URL返回404/500等错误，尝试使用原始URL
+              if (!isRetry && imageUrl.includes('/api/image_proxy')) {
+                const image = allImages[selectedImages[currentIndex - 1]]
+                const rawUrl = image?.rawUrl || image?.url
+                if (rawUrl && rawUrl !== imageUrl) {
+                  this.addLog(`代理失败，尝试原始URL`, `状态码：${res.statusCode}`)
+                  tryDownload(rawUrl, true)
+                  return
+                }
               }
-            })
-          } else {
+              failCount++
+              this.addLog(`第${currentIndex}张下载失败`, `状态码：${res.statusCode}`)
+              if (res.statusCode === 404) {
+                this.addLog('提示', '后端代理服务可能未部署，请检查后端服务或配置域名白名单')
+              }
+              downloadNext()
+            }
+          },
+          fail: (err) => {
+            // 如果是代理URL失败，尝试使用原始URL
+            if (!isRetry && imageUrl.includes('/api/image_proxy')) {
+              const image = allImages[selectedImages[currentIndex - 1]]
+              const rawUrl = image?.rawUrl || image?.url
+              if (rawUrl && rawUrl !== imageUrl) {
+                this.addLog(`代理请求异常，尝试原始URL`, err.errMsg || '未知错误')
+                tryDownload(rawUrl, true)
+                return
+              }
+            }
             failCount++
-            this.addLog(`第${currentIndex}张下载失败`, `状态码：${res.statusCode}`)
+            console.error(`下载第${currentIndex}张异常:`, err)
+            this.addLog(`第${currentIndex}张下载异常`, err.errMsg || '未知错误')
+            if (err.errMsg && err.errMsg.includes('not in domairlist')) {
+              this.addLog('提示', '需要在小程序后台配置downloadFile合法域名，或使用后端代理')
+            }
             downloadNext()
           }
-        },
-        fail: (err) => {
-          failCount++
-          console.error(`下载第${currentIndex}张异常:`, err)
-          this.addLog(`第${currentIndex}张下载异常`, err.errMsg || '未知错误')
-          downloadNext()
-        }
-      })
+        })
+      }
+
+      tryDownload(imageUrl)
     }
 
     downloadNext()
@@ -399,7 +460,8 @@ Page({
     if (index !== undefined) {
       // 从列表下载
       const image = allImages[index]
-      imageUrl = image?.url || image
+      // 优先使用downloadUrl（代理URL），如果没有则使用url
+      imageUrl = image?.downloadUrl || image?.url || image
     } else {
       // 下载第一张（兼容）
       imageUrl = parsedMediaUrl
@@ -419,55 +481,96 @@ Page({
 
     this.addLog('开始下载图片', imageUrl)
 
-    wx.downloadFile({
-      url: imageUrl,
-      success: (res) => {
-        if (res.statusCode === 200 && res.tempFilePath) {
-          wx.saveImageToPhotosAlbum({
-            filePath: res.tempFilePath,
-            success: () => {
-              wx.hideLoading()
-              this.addLog('图片已保存到相册', '')
-              wx.showToast({
-                title: '保存成功',
-                icon: 'success'
-              })
-            },
-            fail: (err) => {
-              wx.hideLoading()
-              if (err.errMsg.includes('auth deny')) {
-                wx.showModal({
-                  title: '提示',
-                  content: '需要授权访问相册才能保存图片',
-                  showCancel: false
-                })
-              } else {
-                this.addLog('保存失败', err.errMsg || '未知错误')
+    // 下载函数，支持降级重试
+    const tryDownload = (url, isRetry = false) => {
+      wx.downloadFile({
+        url: url,
+        success: (res) => {
+          if (res.statusCode === 200 && res.tempFilePath) {
+            wx.saveImageToPhotosAlbum({
+              filePath: res.tempFilePath,
+              success: () => {
+                wx.hideLoading()
+                this.addLog('图片已保存到相册', isRetry ? '(使用原始URL)' : '')
                 wx.showToast({
-                  title: '保存失败',
-                  icon: 'none'
+                  title: '保存成功',
+                  icon: 'success'
                 })
+              },
+              fail: (err) => {
+                wx.hideLoading()
+                if (err.errMsg.includes('auth deny')) {
+                  wx.showModal({
+                    title: '提示',
+                    content: '需要授权访问相册才能保存图片',
+                    showCancel: false
+                  })
+                } else {
+                  this.addLog('保存失败', err.errMsg || '未知错误')
+                  wx.showToast({
+                    title: '保存失败',
+                    icon: 'none'
+                  })
+                }
+              }
+            })
+          } else {
+            // 如果是代理URL返回404/500等错误，尝试使用原始URL
+            if (!isRetry && imageUrl.includes('/api/image_proxy')) {
+              let rawUrl = imageUrl
+              if (index !== undefined) {
+                const image = allImages[index]
+                rawUrl = image?.rawUrl || image?.url
+              } else {
+                rawUrl = parsedMediaUrl
+              }
+              if (rawUrl && rawUrl !== imageUrl) {
+                this.addLog('代理失败，尝试原始URL', `状态码：${res.statusCode}`)
+                tryDownload(rawUrl, true)
+                return
               }
             }
-          })
-        } else {
+            wx.hideLoading()
+            this.addLog('下载失败', `状态码：${res.statusCode}`)
+            if (res.statusCode === 404) {
+              this.addLog('提示', '后端代理服务可能未部署，请检查后端服务或配置域名白名单')
+            }
+            wx.showToast({
+              title: '下载失败',
+              icon: 'none'
+            })
+          }
+        },
+        fail: (err) => {
+          // 如果是代理URL失败，尝试使用原始URL
+          if (!isRetry && imageUrl.includes('/api/image_proxy')) {
+            let rawUrl = imageUrl
+            if (index !== undefined) {
+              const image = allImages[index]
+              rawUrl = image?.rawUrl || image?.url
+            } else {
+              rawUrl = parsedMediaUrl
+            }
+            if (rawUrl && rawUrl !== imageUrl) {
+              this.addLog('代理请求异常，尝试原始URL', err.errMsg || '未知错误')
+              tryDownload(rawUrl, true)
+              return
+            }
+          }
           wx.hideLoading()
-          this.addLog('下载失败', `状态码：${res.statusCode}`)
+          this.addLog('下载异常', err?.errMsg || '未知错误')
+          if (err.errMsg && err.errMsg.includes('not in domairlist')) {
+            this.addLog('提示', '需要在小程序后台配置downloadFile合法域名，或使用后端代理')
+          }
           wx.showToast({
             title: '下载失败',
-            icon: 'none'
+            icon: 'none',
+            duration: 3000
           })
         }
-      },
-      fail: (err) => {
-        wx.hideLoading()
-        this.addLog('下载异常', err?.errMsg || '未知错误')
-        wx.showToast({
-          title: '下载失败',
-          icon: 'none',
-          duration: 3000
-        })
-      }
-    })
+      })
+    }
+
+    tryDownload(imageUrl)
   }
 })

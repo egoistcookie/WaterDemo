@@ -1,10 +1,10 @@
 <view class="container">
-  <!-- 短链解析区域 -->
+  <!-- 图片解析区域 -->
   <view class="card">
-    <view class="section-title">解析链接，获取图片</view>
+    <view class="section-title">解析图片，获取无水印原图</view>
     <input 
       class="input"
-      placeholder="输入小红书短链或豆包链接"
+      placeholder="输入图片路径"
       value="{{shortLink}}"
       bindinput="onShortLinkInput"
       confirm-type="done"
@@ -15,12 +15,8 @@
       loading="{{isParsing}}"
       disabled="{{isParsing || !shortLink}}"
     >
-      {{isParsing ? '解析中...' : '解析短链'}}
+      {{isParsing ? '解析中...' : '解析链接'}}
     </button>
-
-    <view class="result-url" wx:if="{{parsedMediaUrl}}">
-      <text selectable="true" user-select="true" space="true">{{parsedMediaUrl}}</text>
-    </view>
 
     <view class="log-panel" wx:if="{{logs.length}}">
       <view class="log-item" wx:for="{{logs}}" wx:key="index">
@@ -69,6 +65,6 @@
 
   <!-- 空状态提示 -->
   <view class="empty-tip" wx:if="{{allImages.length === 0}}">
-    <text>请输入小红书短链，解析后即可查看无水印原图</text>
+    <text>请输入图片路径，解析后即可查看无水印原图</text>
   </view>
 </view>
