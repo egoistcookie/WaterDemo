@@ -232,6 +232,130 @@ Page({
           const hasNotesPath = /\/notes_pre_post\//i.test(u)
           return hasExt || hasNdSuffix || hasNotesPath
         })
+        
+        // 小红书：去掉和封面（image_url）重复的图片（封面通常就是第一张）
+        const coverUrl = (mediaUrl || '').trim()
+        console.log('[去重] 封面完整URL:', coverUrl)
+        console.log('[去重] 去重前图片数量:', filteredImages.length)
+        console.log('[去重] 去重前图片列表:', filteredImages)
+        
+        // 提取小红书图片的唯一标识符（通常是URL最后一部分，在!nd_之前）
+        // 例如：.../1040g2sg31pbmbhtr2uig5pu5q02jls8uhakmdlo!nd_dft_wgth_webp_3
+        // 提取出：1040g2sg31pbmbhtr2uig5pu5q02jls8uhakmdlo
+        const extractImageId = (url) => {
+          if (!url) return null
+          try {
+            // 先清理CSS样式（封面URL可能包含);background-repeat:...等）
+            let cleaned = url.trim()
+            // 去掉CSS样式部分（从);开始到结尾的所有内容）
+            const cssStyleMatch = cleaned.indexOf(');')
+            if (cssStyleMatch !== -1) {
+              cleaned = cleaned.substring(0, cssStyleMatch)
+            }
+            // 去掉查询参数
+            const withoutQuery = cleaned.split('?')[0]
+            // 去掉!nd_后缀
+            const withoutSuffix = withoutQuery.split('!')[0]
+            // 提取最后一部分（通常是图片ID）
+            const parts = withoutSuffix.split('/')
+            const lastPart = parts[parts.length - 1]
+            // 小红书图片ID通常是类似 1040g2sg31pbmbhtr2uig5pu5q02jls8uhakmdlo 的格式
+            // 长度通常在20-50字符之间，且包含字母和数字
+            if (lastPart && /^[a-z0-9]{20,50}$/i.test(lastPart)) {
+              return lastPart
+            }
+          } catch (e) {
+            console.error('[去重] 提取图片ID异常:', e)
+          }
+          return null
+        }
+        
+        // 清理URL用于比较（去掉CSS样式、查询参数、!nd_后缀）
+        const cleanUrlForCompare = (url) => {
+          if (!url) return ''
+          try {
+            let cleaned = url.trim()
+            // 去掉CSS样式
+            const cssStyleMatch = cleaned.indexOf(');')
+            if (cssStyleMatch !== -1) {
+              cleaned = cleaned.substring(0, cssStyleMatch)
+            }
+            // 去掉查询参数和!nd_后缀
+            return cleaned.split('?')[0].split('!')[0]
+          } catch (e) {
+            console.error('[去重] 清理URL异常:', e)
+            return url
+          }
+        }
+        
+        const coverImageId = extractImageId(coverUrl)
+        const coverBaseUrl = cleanUrlForCompare(coverUrl)
+        console.log('[去重] 封面完整URL:', coverUrl)
+        console.log('[去重] 封面图片ID:', coverImageId)
+        console.log('[去重] 封面基础URL:', coverBaseUrl)
+        console.log('[去重] 去重前图片数量:', filteredImages.length)
+        console.log('[去重] 去重前图片列表:', filteredImages)
+        
+        if (coverUrl) {
+          const beforeCount = filteredImages.length
+          // 标记是否已经保留了第一张与封面相同的图片
+          let hasKeptCoverDuplicate = false
+          
+          filteredImages = filteredImages.filter((url, index) => {
+            const u = (url || '').trim()
+            console.log(`[去重] 检查第${index + 1}张:`, u)
+            
+            // 完全相同的URL
+            if (u === coverUrl) {
+              if (!hasKeptCoverDuplicate) {
+                hasKeptCoverDuplicate = true
+                console.log(`[去重] ✓ 第${index + 1}张是封面（完全匹配），保留在列表中`)
+                return true
+              }
+              console.log(`[去重] ✓ 第${index + 1}张与封面完全相同，已去掉`)
+              return false
+            }
+            
+            // 提取图片ID进行比较
+            const currentImageId = extractImageId(u)
+            console.log(`[去重] 第${index + 1}张图片ID:`, currentImageId)
+            
+            if (coverImageId && currentImageId && currentImageId === coverImageId) {
+              // 如果还没有保留过与封面相同的图片，保留第一张；否则去掉
+              if (!hasKeptCoverDuplicate) {
+                hasKeptCoverDuplicate = true
+                console.log(`[去重] ✓ 第${index + 1}张是封面（图片ID相同），保留在列表中`)
+                return true
+              }
+              console.log(`[去重] ✓ 第${index + 1}张图片ID与封面相同，已去掉`)
+              return false
+            }
+            
+            // 备用方案：比较基础URL
+            const uBase = cleanUrlForCompare(u)
+            console.log(`[去重] 第${index + 1}张基础URL:`, uBase)
+            
+            if (coverBaseUrl && uBase === coverBaseUrl && uBase.length > 50) {
+              if (!hasKeptCoverDuplicate) {
+                hasKeptCoverDuplicate = true
+                console.log(`[去重] ✓ 第${index + 1}张是封面（基础URL相同），保留在列表中`)
+                return true
+              }
+              console.log(`[去重] ✓ 第${index + 1}张基础URL与封面相同，已去掉`)
+              return false
+            }
+            
+            console.log(`[去重] ✓ 第${index + 1}张保留`)
+            return true
+          })
+          
+          const afterCount = filteredImages.length
+          console.log('[去重] 去重后图片数量:', afterCount)
+          console.log('[去重] 去重后图片列表:', filteredImages)
+          console.log(`[去重] 共去掉 ${beforeCount - afterCount} 张重复图片`)
+        } else {
+          console.log('[去重] 无封面URL，跳过去重')
+        }
       } else {
         // 豆包：只显示水印图（避免无水印候选 403）
         filteredImages = allImages.filter((url) => {
