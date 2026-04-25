@@ -231,9 +231,20 @@ def extract_images_from_html(html):
                 logger.info(f"通过正则匹配提取到 {len(valid_matches)} 个URL")
                 break  # 找到就立即返回，不再尝试其他模式
     
-    # 去重并过滤
-    images = list(set(images))
-    images = [img for img in images if img.startswith('http') and ('sns-img' in img or 'xiaohongshu.com' in img or 'xhscdn.com' in img)]
+    # 保序去重并过滤（不能用 set，set 会打乱小红书原始顺序）
+    ordered_images = []
+    seen = set()
+    for img in images:
+        if not (img and img.startswith('http') and ('sns-img' in img or 'xiaohongshu.com' in img or 'xhscdn.com' in img)):
+            continue
+        # 排除纯域名根路径、样式拼接串等“非真实图片URL”
+        if re.match(r'^https?://[^/]+/?$', img.strip()) or ');background' in img:
+            continue
+        if img in seen:
+            continue
+        seen.add(img)
+        ordered_images.append(img)
+    images = ordered_images
     
     if images:
         logger.info(f"总共提取到 {len(images)} 张图片")
@@ -505,6 +516,37 @@ def _is_url_accessible(url, headers, timeout=12):
         return None
 
 
+def _normalize_image_url_for_compare(url):
+    """用于图片去重比较：去掉查询参数、!后缀、异常拼接样式"""
+    if not url:
+        return ''
+    try:
+        cleaned = str(url).strip()
+        css_style_pos = cleaned.find(');')
+        if css_style_pos != -1:
+            cleaned = cleaned[:css_style_pos]
+        cleaned = cleaned.split('?', 1)[0]
+        cleaned = cleaned.split('!', 1)[0]
+        return cleaned.strip()
+    except Exception:
+        return str(url).strip()
+
+
+def _remove_cover_from_images(images, cover_url):
+    """从图片列表中移除封面图，保持原顺序（移除全部匹配项）。"""
+    if not images:
+        return []
+    cover_key = _normalize_image_url_for_compare(cover_url)
+    if not cover_key:
+        return list(images)
+    filtered = []
+    for u in images:
+        if _normalize_image_url_for_compare(u) == cover_key:
+            continue
+        filtered.append(u)
+    return filtered
+
+
 @app.route('/api/parse', methods=['POST'])
 def parse_short_link():
     """解析短链/链接API（支持小红书、豆包等）"""
@@ -573,13 +615,17 @@ def parse_short_link():
                 else:
                     image_url = no_wm_url or wm_url or images[0]
 
-                logger.info(f"豆包解析成功，图片URL: {image_url}")
+                filtered_images = _remove_cover_from_images(images, image_url)
+                logger.info(
+                    "豆包解析成功，封面图已过滤：原始%d张，过滤后%d张",
+                    len(images), len(filtered_images)
+                )
 
                 return jsonify({
                     'success': True,
                     'data': {
                         'image_url': image_url,
-                        'all_images': images,
+                        'all_images': filtered_images,
                         'no_watermark_image_url': no_wm_url,
                         'watermarked_image_url': wm_url,
                         'note_id': None,
@@ -621,16 +667,23 @@ def parse_short_link():
                 'error': '未找到图片，可能是笔记不存在或需要登录'
             }), 404
         
-        # 返回第一张图片的URL（无水印原图）
-        image_url = images[0]
+        # 返回第一张图片URL作为真实封面；同时为兼容旧前端“按 image_url 删封面”的逻辑，
+        # 将 image_url 设为非图片页面URL，避免前端误删 all_images 的首图。
+        real_cover_image_url = images[0]
+        image_url = target_url
+        filtered_images = _remove_cover_from_images(images, real_cover_image_url)
         
-        logger.info(f"解析成功，图片URL: {image_url}")
+        logger.info(
+            "解析成功，封面图已过滤：原始%d张，过滤后%d张，封面=%s",
+            len(images), len(filtered_images), image_url
+        )
         
         return jsonify({
             'success': True,
             'data': {
                 'image_url': image_url,
-                'all_images': images,
+                'cover_image_url': real_cover_image_url,
+                'all_images': filtered_images,
                 'note_id': note_id,
                 'target_url': target_url
             }
